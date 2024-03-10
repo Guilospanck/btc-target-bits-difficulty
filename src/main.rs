@@ -1,5 +1,7 @@
 mod constants;
 
+use std::fmt::format;
+
 use crate::constants::{
   MAXIMUM_FIRST_SIGNIFICANT_BYTE, MAXIMUM_TARGET_COEFFICIENT, MAXIMUM_TARGET_COMPRESSED,
   MAXIMUM_TARGET_EXPONENT, MAXIMUM_TARGET_UNCOMPRESSED, MINIMUM_DIFFICULTY,
@@ -35,7 +37,7 @@ struct Target {
   uncompressed: Vec<u8>,
   /// The difficulty is a human-readable number that helps understand
   /// how hard it is to mine a block.
-  difficulty: i32,
+  difficulty: Vec<u8>,
 }
 
 impl Target {
@@ -43,8 +45,22 @@ impl Target {
     Target {
       compressed: Bits::new(),
       uncompressed: MAXIMUM_TARGET_UNCOMPRESSED.to_vec(),
-      difficulty: MINIMUM_DIFFICULTY,
+      difficulty: MINIMUM_DIFFICULTY.to_be_bytes().to_vec(),
     }
+  }
+
+  fn to_difficulty(&self) -> Vec<u8> {
+    let maximum_target_uncompressed_as_binary_string: String = MAXIMUM_TARGET_UNCOMPRESSED.iter().map(|&b| format!("{:08b}", b)).collect();
+
+    println!("{}", maximum_target_uncompressed_as_binary_string);
+
+    let current_target_uncompressed_as_binary_string: String = self.uncompressed.iter().map(|&b| format!("{:08b}", b)).collect();
+    println!("{}", current_target_uncompressed_as_binary_string);
+
+    // let difficulty = maximum_target_uncompressed_as_binary_string/current_target_uncompressed_as_binary_string;
+    // println!("{}", difficulty);
+
+    vec![]
   }
 
   fn to_mining_target(&self) -> Vec<u8> {
@@ -60,7 +76,6 @@ impl Target {
     }
 
     target.to_vec()
-
   }
 
   fn to_bits(&self) -> Bits {
@@ -129,6 +144,7 @@ impl Target {
 fn main() {
   let target = Target::new();
 
+  println!("=============BITS====================");
   let bits = target.to_bits();
 
   let encoded_bits_value = hex::encode(bits.value.to_be_bytes());
@@ -137,9 +153,10 @@ fn main() {
   println!("{:?}", bits.exponent);
   println!("{:?}", encoded_bits_value);
 
+  println!("=============MINNING TARGET====================");
   let mining_target = target.to_mining_target();
   println!("{:?}", hex::encode(mining_target));
 
-
-
+  println!("=============DIFFICULTY====================");
+  target.to_difficulty();
 }
