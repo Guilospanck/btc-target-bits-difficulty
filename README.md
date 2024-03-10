@@ -35,7 +35,7 @@ a block); lower it is the target, higher the difficulty (harder to mine a block)
 
 It is defined by:
 
-$$Difficulty = \frac{max\_target}{current\_target}$$
+$$Difficulty = \frac{max_{-}target}{current_{-}target}$$
 
 where:
 
