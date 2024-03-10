@@ -4,6 +4,10 @@ pub const MAXIMUM_TARGET_COEFFICIENT: [u8; 3] =  [0x00, 0xff, 0xff];
 pub const MAXIMUM_TARGET_COMPRESSED: i32 = 0x1d00ffff;
 
 pub const UNCOMPRESSED_LENGTH_IN_BYTES: usize = 32;
+
+/// The real value is:
+/// 0x00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+/// but Bitcoin uses a structure that truncates it down to:
 /// 0x00000000ffff0000000000000000000000000000000000000000000000000000
 pub const MAXIMUM_TARGET_UNCOMPRESSED: [u8; UNCOMPRESSED_LENGTH_IN_BYTES] = [0, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 

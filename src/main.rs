@@ -37,7 +37,7 @@ struct Target {
   uncompressed: Vec<u8>,
   /// The difficulty is a human-readable number that helps understand
   /// how hard it is to mine a block.
-  difficulty: Vec<u8>,
+  difficulty: u128,
 }
 
 impl Target {
@@ -45,22 +45,38 @@ impl Target {
     Target {
       compressed: Bits::new(),
       uncompressed: MAXIMUM_TARGET_UNCOMPRESSED.to_vec(),
-      difficulty: MINIMUM_DIFFICULTY.to_be_bytes().to_vec(),
+      difficulty: MINIMUM_DIFFICULTY as u128,
     }
   }
 
-  fn to_difficulty(&self) -> Vec<u8> {
-    let maximum_target_uncompressed_as_binary_string: String = MAXIMUM_TARGET_UNCOMPRESSED.iter().map(|&b| format!("{:08b}", b)).collect();
+  /// Difficulty is defined as max_target / current_target
+  ///
+  /// NOTE:
+  /// As target is represented as a 256-bit (32-byte) value,
+  /// We're going to clamp it to a 128bit.
+  fn to_difficulty(&mut self) -> u128 {
+    // let maximum_target_uncompressed_as_binary_string: String = MAXIMUM_TARGET_UNCOMPRESSED.iter().map(|&b| format!("{:08b}", b)).collect();
 
-    println!("{}", maximum_target_uncompressed_as_binary_string);
+    // println!("{}", maximum_target_uncompressed_as_binary_string);
 
-    let current_target_uncompressed_as_binary_string: String = self.uncompressed.iter().map(|&b| format!("{:08b}", b)).collect();
-    println!("{}", current_target_uncompressed_as_binary_string);
+    // let current_target_uncompressed_as_binary_string: String = self.uncompressed.iter().map(|&b| format!("{:08b}", b)).collect();
+    // println!("{}", current_target_uncompressed_as_binary_string);
 
     // let difficulty = maximum_target_uncompressed_as_binary_string/current_target_uncompressed_as_binary_string;
     // println!("{}", difficulty);
 
-    vec![]
+    let first_16_bytes_of_max_target: [u8; 16] =
+      MAXIMUM_TARGET_UNCOMPRESSED[..16].try_into().unwrap();
+    let max_target_as_u128 = u128::from_be_bytes(first_16_bytes_of_max_target);
+
+    let first_16_bytes_of_current_target: [u8; 16] = self.uncompressed[..16].try_into().unwrap();
+    let current_target_as_u128 = u128::from_be_bytes(first_16_bytes_of_current_target);
+
+    let difficulty = max_target_as_u128 / current_target_as_u128;
+
+    self.difficulty = difficulty;
+
+    difficulty
   }
 
   fn to_mining_target(&self) -> Vec<u8> {
@@ -142,7 +158,7 @@ impl Target {
 }
 
 fn main() {
-  let target = Target::new();
+  let mut target = Target::new();
 
   println!("=============BITS====================");
   let bits = target.to_bits();
@@ -158,5 +174,6 @@ fn main() {
   println!("{:?}", hex::encode(mining_target));
 
   println!("=============DIFFICULTY====================");
-  target.to_difficulty();
+  let difficulty= target.to_difficulty();
+  println!("{:?}", difficulty);
 }
