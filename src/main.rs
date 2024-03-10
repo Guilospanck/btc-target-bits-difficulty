@@ -10,7 +10,7 @@ use crate::constants::{
 
 use hex;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Bits {
   pub value: i32,
   pub exponent: u8,
@@ -18,7 +18,15 @@ struct Bits {
 }
 
 impl Bits {
-  fn new() -> Self {
+  fn empty() -> Self {
+    Bits {
+      value: 0i32,
+      exponent: 0u8,
+      coefficient: vec![],
+    }
+  }
+
+  fn max() -> Self {
     Bits {
       value: MAXIMUM_TARGET_COMPRESSED,
       exponent: MAXIMUM_TARGET_EXPONENT,
@@ -41,12 +49,53 @@ struct Target {
 }
 
 impl Target {
-  fn new() -> Self {
+  fn empty() -> Self {
     Target {
-      compressed: Bits::new(),
+      compressed: Bits::empty(),
+      uncompressed: vec![],
+      difficulty: 0u128,
+    }
+  }
+
+  fn max() -> Self {
+    Target {
+      compressed: Bits::max(),
       uncompressed: MAXIMUM_TARGET_UNCOMPRESSED.to_vec(),
       difficulty: MINIMUM_DIFFICULTY as u128,
     }
+  }
+
+  fn from_uncompressed(uncompressed: String) -> Self {
+    let hex_bytes = hex::decode(uncompressed).unwrap();
+
+    let mut target = Target::empty();
+    target.uncompressed = hex_bytes;
+
+    target.set_difficulty();
+    target.set_compressed();
+
+    target
+  }
+
+  fn from_compressed(compressed: i32) -> Self {
+    let bytes = compressed.to_be_bytes();
+    assert_eq!(bytes.len(), 4);
+
+    let exponent = bytes[0];
+    let coefficient = &bytes[1..].to_vec();
+
+    let mut bits = Bits::empty();
+    bits.exponent = exponent;
+    bits.coefficient = coefficient.clone();
+    bits.value = compressed;
+
+    let mut target = Target::empty();
+    target.compressed = bits;
+
+    target.set_uncompressed();
+    target.set_difficulty();
+
+    target
   }
 
   /// Difficulty is defined as max_target / current_target
@@ -54,17 +103,7 @@ impl Target {
   /// NOTE:
   /// As target is represented as a 256-bit (32-byte) value,
   /// We're going to clamp it to a 128bit.
-  fn to_difficulty(&mut self) -> u128 {
-    // let maximum_target_uncompressed_as_binary_string: String = MAXIMUM_TARGET_UNCOMPRESSED.iter().map(|&b| format!("{:08b}", b)).collect();
-
-    // println!("{}", maximum_target_uncompressed_as_binary_string);
-
-    // let current_target_uncompressed_as_binary_string: String = self.uncompressed.iter().map(|&b| format!("{:08b}", b)).collect();
-    // println!("{}", current_target_uncompressed_as_binary_string);
-
-    // let difficulty = maximum_target_uncompressed_as_binary_string/current_target_uncompressed_as_binary_string;
-    // println!("{}", difficulty);
-
+  fn set_difficulty(&mut self) {
     let first_16_bytes_of_max_target: [u8; 16] =
       MAXIMUM_TARGET_UNCOMPRESSED[..16].try_into().unwrap();
     let max_target_as_u128 = u128::from_be_bytes(first_16_bytes_of_max_target);
@@ -75,11 +114,9 @@ impl Target {
     let difficulty = max_target_as_u128 / current_target_as_u128;
 
     self.difficulty = difficulty;
-
-    difficulty
   }
 
-  fn to_mining_target(&self) -> Vec<u8> {
+  fn set_uncompressed(&mut self) {
     let exponent = self.compressed.exponent;
     let coefficient = self.compressed.coefficient.clone();
 
@@ -91,10 +128,11 @@ impl Target {
       count += 1;
     }
 
-    target.to_vec()
+    let mining_target = target.to_vec();
+    self.uncompressed = mining_target.clone();
   }
 
-  fn to_bits(&self) -> Bits {
+  fn set_compressed(&mut self) {
     // get first three signficant bytes and the index of the first signficant byte
     let (coefficient, byte_index) = self._get_coefficient_and_byte_index();
     let exponent = self._get_exponent(byte_index);
@@ -108,11 +146,13 @@ impl Target {
 
     let value = i32::from_be_bytes(as_array);
 
-    Bits {
+    let bits = Bits {
       coefficient,
       exponent,
       value,
-    }
+    };
+
+    self.compressed = bits;
   }
 
   fn _get_coefficient_and_byte_index(&self) -> (Vec<u8>, usize) {
@@ -144,8 +184,7 @@ impl Target {
   }
 
   fn _get_exponent(&self, byte_index: usize) -> u8 {
-    // The index starts at 0, so we must add 1 to offset it
-    (UNCOMPRESSED_LENGTH_IN_BYTES - byte_index + 1) as u8
+    (UNCOMPRESSED_LENGTH_IN_BYTES - byte_index) as u8
   }
 
   fn _check_if_uncompressed_target_is_valid(self) -> bool {
@@ -158,22 +197,28 @@ impl Target {
 }
 
 fn main() {
-  let mut target = Target::new();
-
-  println!("=============BITS====================");
-  let bits = target.to_bits();
-
-  let encoded_bits_value = hex::encode(bits.value.to_be_bytes());
-
-  println!("{:?}", bits.coefficient);
-  println!("{:?}", bits.exponent);
-  println!("{:?}", encoded_bits_value);
-
-  println!("=============MINNING TARGET====================");
-  let mining_target = target.to_mining_target();
-  println!("{:?}", hex::encode(mining_target));
-
-  println!("=============DIFFICULTY====================");
-  let difficulty= target.to_difficulty();
-  println!("{:?}", difficulty);
+  {
+    let max_target = Target::max();
+    let encoded_bits_value = hex::encode(max_target.compressed.value.to_be_bytes());
+    let uncompressed = hex::encode(max_target.uncompressed);
+    println!("\nMax target: \n- Mining target (uncompressed) = {}\n- Block Header nBits (compressed) = {}\n- Difficulty: {}", uncompressed, encoded_bits_value, max_target.difficulty);
+  }
+  println!("=========================================================================================================");
+  {
+    let target = Target::from_uncompressed(
+      "000000000000000000038c120000000000000000000000000000000000000000".to_owned(),
+    );
+    let encoded_bits_value = hex::encode(target.compressed.value.to_be_bytes());
+    let uncompressed = hex::encode(target.uncompressed);
+    println!("Target: \n- Mining target (uncompressed) = {}\n- Block Header nBits (compressed) = {}\n- Difficulty: {}", uncompressed, encoded_bits_value, target.difficulty);
+    assert_eq!("17038c12", encoded_bits_value);
+  }
+  println!("=========================================================================================================");
+  {
+    let target = Target::from_compressed(0x17038c12);
+    let encoded_bits_value = hex::encode(target.compressed.value.to_be_bytes());
+    let uncompressed = hex::encode(target.uncompressed);
+    println!("Target: \n- Mining target (uncompressed) = {}\n- Block Header nBits (compressed) = {}\n- Difficulty: {}", uncompressed, encoded_bits_value, target.difficulty);
+    assert_eq!("000000000000000000038c120000000000000000000000000000000000000000", uncompressed);
+  }
 }
