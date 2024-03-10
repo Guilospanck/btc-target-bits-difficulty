@@ -6,8 +6,8 @@ This project shows how to calculate those three values that are used in the Bitc
 
 This is the _compressed_ value that is used in the block header. It's a 4 byte (32 bits) value defined by:
 
-- exponent: the first byte. It tells how _"far to the left"_ is the value;
-- coefficient: the last 3 bytes. It is the value itself (with some precision, but not full).
+- `exponent`: the first byte. It tells how _"far to the left"_ is the value;
+- `coefficient`: the last 3 bytes. It is the value itself (with some precision, but not full).
 
 Example:
 
@@ -24,9 +24,8 @@ It's a 32-byte (256 bits) value.
 
 It is defined by:
 
-```
-target = coefficient * 2**(8*(exponent–3))
-```
+$$target = coefficient * 2^{8(exponent-3)}$$
+
 
 ## Difficulty
 
@@ -36,11 +35,7 @@ a block); lower it is the target, higher the difficulty (harder to mine a block)
 
 It is defined by:
 
-```
-Difficulty =  max_target 
-            ------------  
-					 current_target            
-```
+$$Difficulty = \frac{max\_target}{current\_target}$$
 
 where:
 
