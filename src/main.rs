@@ -28,8 +28,10 @@ impl Bits {
 struct Target {
   /// This is a 4-byte (32 bits) value
   /// It is known as BITS.
+  /// It is used in the block header.
   compressed: Bits,
-  /// This is a 32-byte (256 bits) value
+  /// This is a 32-byte (256 bits) value.
+  /// It is used by miners to check validity of block.
   uncompressed: Vec<u8>,
   /// The difficulty is a human-readable number that helps understand
   /// how hard it is to mine a block.
@@ -43,6 +45,22 @@ impl Target {
       uncompressed: MAXIMUM_TARGET_UNCOMPRESSED.to_vec(),
       difficulty: MINIMUM_DIFFICULTY,
     }
+  }
+
+  fn to_mining_target(&self) -> Vec<u8> {
+    let exponent = self.compressed.exponent;
+    let coefficient = self.compressed.coefficient.clone();
+
+    let mut target: [u8; 32] = [0; 32];
+
+    let mut count = 0u8;
+    for value in coefficient {
+      target[(UNCOMPRESSED_LENGTH_IN_BYTES as u8 - exponent + count) as usize] = value;
+      count += 1;
+    }
+
+    target.to_vec()
+
   }
 
   fn to_bits(&self) -> Bits {
@@ -115,8 +133,13 @@ fn main() {
 
   let encoded_bits_value = hex::encode(bits.value.to_be_bytes());
 
-
   println!("{:?}", bits.coefficient);
   println!("{:?}", bits.exponent);
   println!("{:?}", encoded_bits_value);
+
+  let mining_target = target.to_mining_target();
+  println!("{:?}", hex::encode(mining_target));
+
+
+
 }
