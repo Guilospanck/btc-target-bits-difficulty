@@ -1,4 +1,4 @@
-# Target, nBits and Difficulty
+# Target, nBits, Difficulty, Time to mine
 
 This project shows how to calculate those three values that are used in the Bitcoin protocol.
 
@@ -14,7 +14,6 @@ Example:
 ![image](https://github.com/Guilospanck/btc-target-bits-difficulty/assets/22435398/20f75082-b8e4-4958-98f8-1a911f11e77b)
 _From https://learnmeabitcoin.com/technical/block/bits/_
 
-
 > Note that the nBits is a value that is not 100% accurate, but nevertheless it is used by the miners.
 
 ## Target
@@ -26,7 +25,6 @@ It is defined by:
 
 $$target = coefficient * 2^{8(exponent-3)}$$
 
-
 ## Difficulty
 
 This value actually does not exist in the protocol, it is more to provide a human-readable information to how difficult it is
@@ -35,9 +33,22 @@ a block); lower it is the target, higher the difficulty (harder to mine a block)
 
 It is defined by:
 
-$$Difficulty = \frac{max_{-}target}{current_{-}target}$$
+$$difficulty = \frac{max_{-}target}{current_{-}target}$$
 
 where:
 
 - `max_target`: hardcoded value defined in the protocol that has the value of `0x00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff` (but because of how the protocol is implemented, it is truncated to `0x00000000ffff0000000000000000000000000000000000000000000000000000`;
 - `current_target`: the current (uncompressed) value.
+
+## Time to mine a valid block
+
+The time to mine a valid block is an equation that brings into consideration the current hashrate.
+The formula is given by:
+
+$$time = \frac{difficulty * 2^{32}}{hashrate}$$
+
+If the hashrate is given in hashes/seconds, then the result will be in seconds.
+
+With this information, you can check in how many blocks (estatistically) the miner will find a valid block by knowing that each block is mined roughly every 10 minutes:
+
+$$\frac{time}{60 * 10}$$

@@ -65,6 +65,16 @@ impl Target {
     }
   }
 
+  /// This will be given on the same unit as the hashrate.
+  /// If H/s, then seconds. If H/min, then minutes.
+  fn time_to_find_a_valid_block_based_on_given_hashrate(&self, hashrate: u64) -> u128 {
+    let a = self.difficulty << 32;
+
+    println!("{}", a);
+
+    a / hashrate as u128
+  }
+
   fn from_uncompressed(uncompressed: String) -> Self {
     let hex_bytes = hex::decode(uncompressed).unwrap();
 
@@ -200,8 +210,15 @@ fn main() {
   {
     let max_target = Target::max();
     let encoded_bits_value = hex::encode(max_target.compressed.value.to_be_bytes());
-    let uncompressed = hex::encode(max_target.uncompressed);
+    let uncompressed = hex::encode(max_target.uncompressed.clone());
+    let time_to_find_a_valid_block =
+      max_target.time_to_find_a_valid_block_based_on_given_hashrate(1e12 as u64);
     println!("\nMax target: \n- Mining target (uncompressed) = {}\n- Block Header nBits (compressed) = {}\n- Difficulty: {}", uncompressed, encoded_bits_value, max_target.difficulty);
+    println!(
+      "- Time (days) to find a valid block: {}\n- In how many blocks: {}",
+      time_to_find_a_valid_block / (60 * 60 * 24),
+      time_to_find_a_valid_block / (60 * 10)
+    );
   }
   println!("=========================================================================================================");
   {
@@ -209,16 +226,51 @@ fn main() {
       "000000000000000000038c120000000000000000000000000000000000000000".to_owned(),
     );
     let encoded_bits_value = hex::encode(target.compressed.value.to_be_bytes());
-    let uncompressed = hex::encode(target.uncompressed);
+    let uncompressed = hex::encode(target.uncompressed.clone());
+    let time_to_find_a_valid_block =
+      target.time_to_find_a_valid_block_based_on_given_hashrate(1e12 as u64);
     println!("Target: \n- Mining target (uncompressed) = {}\n- Block Header nBits (compressed) = {}\n- Difficulty: {}", uncompressed, encoded_bits_value, target.difficulty);
+    println!(
+      "- Time (seconds) to find a valid block: {}\n- In how many blocks: {}",
+      time_to_find_a_valid_block / (60 * 60 * 24),
+      time_to_find_a_valid_block / (60 * 10)
+    );
     assert_eq!("17038c12", encoded_bits_value);
   }
   println!("=========================================================================================================");
   {
     let target = Target::from_compressed(0x17038c12);
     let encoded_bits_value = hex::encode(target.compressed.value.to_be_bytes());
-    let uncompressed = hex::encode(target.uncompressed);
+    let uncompressed = hex::encode(target.uncompressed.clone());
+    let time_to_find_a_valid_block =
+      target.time_to_find_a_valid_block_based_on_given_hashrate(1e12 as u64);
     println!("Target: \n- Mining target (uncompressed) = {}\n- Block Header nBits (compressed) = {}\n- Difficulty: {}", uncompressed, encoded_bits_value, target.difficulty);
-    assert_eq!("000000000000000000038c120000000000000000000000000000000000000000", uncompressed);
+    println!(
+      "- Time (seconds) to find a valid block: {}\n- In how many blocks: {}",
+      time_to_find_a_valid_block / (60 * 60 * 24),
+      time_to_find_a_valid_block / (60 * 10)
+    );
+    assert_eq!(
+      "000000000000000000038c120000000000000000000000000000000000000000",
+      uncompressed
+    );
+  }
+  println!("=========================================================================================================");
+  {
+    let target = Target::from_compressed(0x1903a30c);
+    let encoded_bits_value = hex::encode(target.compressed.value.to_be_bytes());
+    let uncompressed = hex::encode(target.uncompressed.clone());
+    let time_to_find_a_valid_block =
+      target.time_to_find_a_valid_block_based_on_given_hashrate(1e12 as u64);
+    println!("Target: \n- Mining target (uncompressed) = {}\n- Block Header nBits (compressed) = {}\n- Difficulty: {}", uncompressed, encoded_bits_value, target.difficulty);
+    println!(
+      "- Time (seconds) to find a valid block: {}\n- In how many blocks: {}",
+      time_to_find_a_valid_block / (60 * 60 * 24),
+      time_to_find_a_valid_block / (60 * 10)
+    );
+    assert_eq!(
+      "0000000000000003a30c00000000000000000000000000000000000000000000",
+      uncompressed
+    );
   }
 }
